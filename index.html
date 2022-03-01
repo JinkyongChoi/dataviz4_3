@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: medium;
+            color: brown;
+        }
+
+        .pop-up {
+            position: absolute; 
+            border: 0.3px skyblue;
+            border-radius: 1px;
+            line-height: 1;
+            width: 300px;
+            pointer-events: none;
+            background-color: skyblue;
+            padding: 5px;
+            opacity: 0;
+        }
+
+     
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Children In Poverty Per County
+        </h1>
+
+        <svg width="1050px" height="500px"></svg>
+
+        <div class="pop-up"></div>
+    </div>
+</body>
+
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- load topojson script -->
+<script src="https://unpkg.com/topojson@3"></script>
+
+<script>
+    console.log({d3})
+    console.log({topojson})
+
+    let svg = d3.select("body").select("svg")
+    let width = 1050;
+    let height = 500;
+
+    d3.json("c.json").then(function (data) {
+        let county = topojson.feature(data, data.objects.county)
+        let state = topojson.feature(data, data.objects.state)
+        let proj = d3.geoIdentity()
+            .fitSize([width, height], state)
+            .reflectY(true)
+        let path = d3.geoPath(proj)
+
+        svg.append("g")
+            .attr("class", "state")
+            .selectAll("path")
+            .data(state.features)
+            .join("path")
+            .attr("d", path)
+            .attr("fill", "lightgray")
+            .attr("stroke", "#000")
+
+        svg.append("g")
+            .attr("class", "county")
+            .selectAll("circle")
+            .data(county.features)
+            .join("circle")
+            .attr("r", d => Math.sqrt(d.properties.pop_18_in_poverty / 300))
+            .attr("cx", d => {
+                return path.centroid(d)[0]
+            })
+            .attr("cy", d => {
+                return path.centroid(d)[1]
+            })
+            .attr("fill", "orange")
+            
+        
+        let pos = d3.select(".pop-up")
+
+        let mycircles = d3.selectAll(".county circle")
+
+        mycircles.on("mouseover", (event, d) => {
+            pos
+                .style("opacity", 1)
+                .style("top", (event.y - 15) + "px")
+                .style("left", (event.x - 5) + "px")
+                .html("<b>" + d.properties.NAME + ": " +d.properties.pop_18_in_poverty)
+        })
+
+        mycircles.on("mouseout", (event, d) => {
+            pos.style("opacity", 0)
+        })
+    })
+
+</script>
